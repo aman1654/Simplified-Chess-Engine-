@@ -1,0 +1,153 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Position {
+    int col, row;
+};
+
+bool is_within_board(int col, int row) {
+    return col >= 1 && col <= 8 && row >= 1 && row <= 8;
+}
+
+vector<Position> generate_moves(char piece, Position pos) {
+    vector<Position> moves;
+    int directions[8][2] = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}};
+    
+    if (piece == 'Q') {
+        for (auto dir : directions) {
+            for (int i = 1; i <= 8; ++i) {
+                int new_col = pos.col + i * dir[0];
+                int new_row = pos.row + i * dir[1];
+                if (is_within_board(new_col, new_row)) {
+                    moves.push_back({new_col, new_row});
+                } else {
+                    break;
+                }
+            }
+        }
+    } 
+    // Add more cases if there are other pieces
+    return moves;
+}
+
+string simplifiedChessEngine(vector<vector<char>> whites, vector<vector<char>> blacks, int moves) {
+    map<pair<int, int>, char> white_pieces, black_pieces;
+
+    // Store white pieces
+    for (const auto &white : whites) {
+        int col = white[1] - 'A' + 1;
+        int row = white[2] - '1' + 1;
+        white_pieces[{col, row}] = white[0];
+    }
+
+    // Store black pieces
+    for (const auto &black : blacks) {
+        int col = black[1] - 'A' + 1;
+        int row = black[2] - '1' + 1;
+        black_pieces[{col, row}] = black[0];
+    }
+
+    queue<pair<map<pair<int, int>, char>, int>> q;
+    q.push({white_pieces, 0});
+
+    while (!q.empty()) {
+        auto [current_whites, move_count] = q.front();
+        q.pop();
+
+        if (move_count > moves) continue;
+
+        for (const auto &white : current_whites) {
+            char piece = white.second;
+            int col = white.first.first;
+            int row = white.first.second;
+            auto possible_moves = generate_moves(piece, {col, row});
+
+            for (auto &move : possible_moves) {
+                int new_col = move.col;
+                int new_row = move.row;
+                auto it = black_pieces.find({new_col, new_row});
+                if (it != black_pieces.end() && it->second == 'Q') {
+                    return "YES";
+                }
+                if (white_pieces.find({new_col, new_row}) == white_pieces.end()) {
+                    auto new_whites = current_whites;
+                    new_whites.erase({col, row});
+                    new_whites[{new_col, new_row}] = piece;
+                    q.push({new_whites, move_count + 1});
+                }
+            }
+        }
+    }
+
+    return "NO";
+}
+
+vector<string> split_string(string input_string) {
+    string::iterator new_end = unique(input_string.begin(), input_string.end(), [] (const char &x, const char &y) {
+        return x == y and x == ' ';
+    });
+
+    input_string.erase(new_end, input_string.end());
+
+    while (input_string[input_string.length() - 1] == ' ') {
+        input_string.pop_back();
+    }
+
+    vector<string> splits;
+    char delimiter = ' ';
+
+    size_t i = 0;
+    size_t pos = input_string.find(delimiter);
+
+    while (pos != string::npos) {
+        splits.push_back(input_string.substr(i, pos - i));
+
+        i = pos + 1;
+        pos = input_string.find(delimiter, i);
+    }
+
+    splits.push_back(input_string.substr(i, min(pos, input_string.length()) - i + 1));
+
+    return splits;
+}
+
+int main()
+{
+    ofstream fout(getenv("OUTPUT_PATH"));
+
+    int g;
+    cin >> g;
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+    for (int g_itr = 0; g_itr < g; g_itr++) {
+        string wbm_temp;
+        getline(cin, wbm_temp);
+
+        vector<string> wbm = split_string(wbm_temp);
+
+        int w = stoi(wbm[0]);
+        int b = stoi(wbm[1]);
+        int m = stoi(wbm[2]);
+
+        vector<vector<char>> whites(w, vector<char>(3));
+        for (int whites_row_itr = 0; whites_row_itr < w; whites_row_itr++) {
+            for (int whites_column_itr = 0; whites_column_itr < 3; whites_column_itr++) {
+                cin >> whites[whites_row_itr][whites_column_itr];
+            }
+        }
+
+        vector<vector<char>> blacks(b, vector<char>(3));
+        for (int blacks_row_itr = 0; blacks_row_itr < b; blacks_row_itr++) {
+            for (int blacks_column_itr = 0; blacks_column_itr < 3; blacks_column_itr++) {
+                cin >> blacks[blacks_row_itr][blacks_column_itr];
+            }
+        }
+
+        string result = simplifiedChessEngine(whites, blacks, m);
+        fout << result << endl;
+    }
+
+    fout.close();
+
+    return 0;
+}
